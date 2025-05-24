@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Monaco Editor - Modern Dark</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      color: #e4e6ea;
+      overflow: hidden;
+    }
+
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: rgba(20, 25, 45, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 10;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #64ffda, transparent);
+      opacity: 0.6;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #64ffda, #bb86fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .file-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #4c1d95, #6366f1);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .file-input-wrapper:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-input-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      color: white;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e4e6ea;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, #334155, #475569);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+    }
+
+    #editor-container {
+      flex: 1;
+      position: relative;
+      margin: 16px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #1e1e2e;
+    }
+
+    #editor {
+      height: 100%;
+      border-radius: 16px;
+    }
+
+    .status-bar {
+      background: rgba(20, 25, 45, 0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 24px;
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .language-indicator {
+      background: rgba(100, 255, 218, 0.1);
+      color: #64ffda;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 500;
+      border: 1px solid rgba(100, 255, 218, 0.2);
+      align-self: right;
+      margin-left: 10vw;
+    }
+
+    /* Loading animation */
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #64ffda;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(100, 255, 218, 0.3);
+      border-top: 2px solid #64ffda;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Floating particles effect */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: #64ffda;
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+      50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .header {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      
+      .file-controls {
+        margin-left: 0;
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      #editor-container {
+        margin: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+  
+  <div class="container">
+    <header class="header">
+      <div class="logo">⚡ CodeStudio</div>
+      <div class="file-controls">
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" />
+          <label for="fileInput" class="file-input-label">
+            <i class="fa-solid fa-file-import"></i>
+          </label>
+        </div>
+        <button class="btn btn-primary" onclick="downloadFile()">
+          <i class="fa-solid fa-file-export"></i>
+        </button>
+        <button class="btn" onclick="clearEditor()">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </header>
+
+    <div id="editor-container">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        Loading Monaco Editor...
+      </div>
+      <div id="editor"></div>
+    </div>
+
+    <footer class="status-bar">
+      <span>Ready</span>
+      <span class="language-indicator" id="languageIndicator">Python</span>
+    </footer>
+  </div>
+
+  <!-- Monaco Editor CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+  <script>
+    let currentLanguage = 'python';
+    let editor;
+
+    // Create floating particles
+    function createParticles() {
+      const particlesContainer = document.getElementById('particles');
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
+        particlesContainer.appendChild(particle);
+      }
+    }
+
+    function getLanguageFromExtension(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const map = {
+        'py': 'python',
+        'js': 'javascript',
+        'ts': 'typescript',
+        'jsx': 'javascript',
+        'tsx': 'typescript',
+        'json': 'json',
+        'html': 'html',
+        'css': 'css',
+        'scss': 'scss',
+        'less': 'less',
+        'cpp': 'cpp',
+        'cxx': 'cpp',
+        'cc': 'cpp',
+        'c': 'c',
+        'h': 'c',
+        'hpp': 'cpp',
+        'java': 'java',
+        'md': 'markdown',
+        'txt': 'plaintext',
+        'xml': 'xml',
+        'sh': 'shell',
+        'bash': 'shell',
+        'go': 'go',
+        'rs': 'rust',
+        'php': 'php',
+        'rb': 'ruby',
+        'swift': 'swift',
+        'kt': 'kotlin',
+        'sql': 'sql',
+        'r': 'r',
+        'scala': 'scala',
+        'clj': 'clojure',
+        'fs': 'fsharp',
+        'vb': 'vb',
+        'pl': 'perl',
+        'lua': 'lua',
+        'dart': 'dart',
+        'yaml': 'yaml',
+        'yml': 'yaml',
+        'toml': 'toml',
+        'ini': 'ini',
+        'dockerfile': 'dockerfile'
+      };
+      return map[ext] || 'plaintext';
+    }
+
+    function updateLanguageIndicator(lang) {
+      currentLanguage = lang;
+      const indicator = document.getElementById('languageIndicator');
+      const displayNames = {
+        'python': 'Python',
+        'javascript': 'JavaScript',
+        'typescript': 'TypeScript',
+        'json': 'JSON',
+        'html': 'HTML',
+        'css': 'CSS',
+        'cpp': 'C++',
+        'c': 'C',
+        'java': 'Java',
+        'markdown': 'Markdown',
+        'plaintext': 'Plain Text',
+        'xml': 'XML',
+        'shell': 'Shell',
+        'go': 'Go',
+        'rust': 'Rust',
+        'php': 'PHP',
+        'ruby': 'Ruby',
+        'swift': 'Swift',
+        'kotlin': 'Kotlin',
+        'sql': 'SQL'
+      };
+      indicator.textContent = displayNames[lang] || lang.toUpperCase();
+    }
+
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      // Enhanced dark theme
+      monaco.editor.defineTheme('enhanced-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+          { token: '', foreground: 'cdd6f4', background: '1e1e2e' },
+          { token: 'comment', foreground: '6c7086', fontStyle: 'italic' },
+          { token: 'keyword', foreground: 'cba6f7' },
+          { token: 'number', foreground: 'fab387' },
+          { token: 'string', foreground: 'a6e3a1' },
+          { token: 'variable', foreground: 'f38ba8' },
+          { token: 'type', foreground: '89b4fa' },
+          { token: 'function', foreground: '89dceb' },
+          { token: 'constant', foreground: 'f9e2af' },
+          { token: 'delimiter', foreground: '94e2d5' },
+        ],
+        colors: {
+          'editor.background': '#1e1e2e',
+          'editor.foreground': '#cdd6f4',
+          'editor.lineHighlightBackground': '#313244',
+          'editor.selectionBackground': '#585b7040',
+          'editor.inactiveSelectionBackground': '#585b7020',
+          'editorCursor.foreground': '#f5e0dc',
+          'editorWhitespace.foreground': '#45475a',
+          'editorLineNumber.foreground': '#6c7086',
+          'editorLineNumber.activeForeground': '#cdd6f4',
+          'editor.findMatchBackground': '#f9e2af60',
+          'editor.findMatchHighlightBackground': '#f9e2af30',
+          'editorWidget.background': '#181825',
+          'editorWidget.border': '#45475a',
+          'editorSuggestWidget.background': '#181825',
+          'editorSuggestWidget.border': '#45475a',
+          'editorSuggestWidget.selectedBackground': '#313244'
+        }
+      });
+
+      editor = monaco.editor.create(document.getElementById('editor'), {
+        value: `# Welcome to CodeStudio! ✨
+def fibonacci(n):
+    """Generate Fibonacci sequence up to n terms."""
+    if n <= 0:
+        return []
+    elif n == 1:
+        return [0]
+    elif n == 2:
+        return [0, 1]
+    
+    sequence = [0, 1]
+    for i in range(2, n):
+        sequence.append(sequence[i-1] + sequence[i-2])
+    
+    return sequence
+
+# Generate first 10 Fibonacci numbers
+result = fibonacci(10)
+print("Fibonacci sequence:", result)
+
+# Try importing a file or start coding! 🚀`,
+        language: 'python',
+        theme: 'enhanced-dark',
+        automaticLayout: true,
+        fontSize: 14,
+        lineHeight: 22,
+        fontFamily: "'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+        minimap: { enabled: true },
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        lineNumbers: 'on',
+        renderWhitespace: 'selection',
+        smoothScrolling: true,
+        cursorBlinking: 'smooth',
+        cursorSmoothCaretAnimation: true,
+        folding: true,
+        bracketPairColorization: { enabled: true },
+        guides: {
+          indentation: true,
+          highlightActiveIndentation: true
+        }
+      });
+
+      // Hide loading indicator
+      document.getElementById('loading').style.display = 'none';
+      updateLanguageIndicator('python');
+    });
+
+    // File import with enhanced feedback
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const code = evt.target.result;
+        const lang = getLanguageFromExtension(file.name);
+        editor.setValue(code);
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+        updateLanguageIndicator(lang);
+        
+        // Reset file input
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    // Enhanced file export
+    function downloadFile() {
+      const code = editor.getValue();
+      if (!code.trim()) {
+        alert('Editor is empty! Nothing to export.');
+        return;
+      }
+      
+      const extensions = {
+        'python': 'py',
+        'javascript': 'js',
+        'typescript': 'ts',
+        'json': 'json',
+        'html': 'html',
+        'css': 'css',
+        'cpp': 'cpp',
+        'c': 'c',
+        'java': 'java',
+        'markdown': 'md',
+        'plaintext': 'txt',
+        'xml': 'xml',
+        'shell': 'sh',
+        'go': 'go',
+        'rust': 'rs',
+        'php': 'php',
+        'ruby': 'rb',
+        'swift': 'swift',
+        'kotlin': 'kt',
+        'sql': 'sql'
+      };
+      
+      const defaultExt = extensions[currentLanguage] || 'txt';
+      const filename = prompt('Enter filename to save:', `code.${defaultExt}`);
+      if (!filename) return;
+      
+      const blob = new Blob([code], {type: 'text/plain'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+
+    function clearEditor() {
+      if (confirm('Are you sure you want to clear the editor?')) {
+        editor.setValue('');
+        editor.focus();
+      }
+    }
+
+    // Initialize particles
+    window.addEventListener('load', createParticles);
+
+    // Make functions global
+    window.downloadFile = downloadFile;
+    window.clearEditor = clearEditor;
+  </script>
+</body>
+</html>
